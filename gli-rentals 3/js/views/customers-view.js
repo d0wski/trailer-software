@@ -10,13 +10,13 @@ export async function loadCustomersView() {
   
   main.innerHTML = `
     <div class="card">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h1 style="margin: 0;">Customers</h1>
+      <div class="flex-between mb-3">
+        <h1 class="mb-0">Customers</h1>
         <button class="btn btn-primary" id="addCustomerBtn">+ Add Customer</button>
       </div>
       
-      <div style="display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;">
-        <div style="flex: 1; min-width: 200px;">
+      <div class="flex gap-2 mb-3 flex-wrap">
+        <div class="flex-1 min-w-200">
           <input type="text" id="customerSearch" placeholder="Search customers..." style="width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px;">
         </div>
         <select id="timeFilter" style="padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; min-width: 150px;">
@@ -178,19 +178,18 @@ async function renderCustomersList() {
       </thead>
       <tbody>
         ${filtered.map(c => `
-          <tr onclick="window.viewCustomerDetail('${c.id}')" style="cursor: pointer;">
+          <tr onclick="window.viewCustomerDetail('${c.id}')" class="cursor-pointer">
             <td><strong>${c.name}</strong></td>
-            <td style="color: var(--muted);">${c.phone || '-'}</td>
+            <td class="text-muted">${c.phone || '-'}</td>
             <td>${c.bookingCount}</td>
             <td>${c.totalDays} days</td>
             <td><strong>$${c.totalSpent.toLocaleString()}</strong></td>
-            <td style="color: var(--muted);">→</td>
+            <td class="text-muted">→</td>
           </tr>
         `).join('')}
       </tbody>
     </table>
-    
-    <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px;">
+    <div class="stats-footer">
       ${filtered.length} customer${filtered.length !== 1 ? 's' : ''} · 
       Total: $${filtered.reduce((sum, c) => sum + c.totalSpent, 0).toLocaleString()} · 
       ${filtered.reduce((sum, c) => sum + c.totalDays, 0)} days rented

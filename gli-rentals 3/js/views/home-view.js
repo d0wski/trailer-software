@@ -36,7 +36,7 @@ export async function loadHomeView() {
     <div class="card">
       <h1>Dashboard</h1>
       
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 32px;">
+      <div class="kpi-grid" class="grid-auto">
         <div class="kpi">
           <div class="label">Today's Pickups</div>
           <div class="value">${todaysPickups.length}</div>
@@ -51,7 +51,7 @@ export async function loadHomeView() {
         </div>
         <div class="kpi">
           <div class="label">Available Now</div>
-          <div class="value" style="color: ${availableCount > 0 ? '#166534' : '#991b1b'};">${availableCount}</div>
+          <div class="value ${availableCount > 0 ? 'text-success' : 'text-danger'}">${availableCount}</div>
         </div>
         <div class="kpi">
           <div class="label">Revenue This Month</div>
@@ -59,18 +59,18 @@ export async function loadHomeView() {
         </div>
       </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+      <div class="form-row" style="gap: 24px;">
         <div class="panel">
           <h2>Today's Activity</h2>
           ${todaysPickups.length > 0 || todaysReturns.length > 0 ? `
-            <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div class="avail-list">
               ${todaysPickups.map(b => {
                 const trailer = trailers.find(t => t.id === b.trailer_id);
                 return `
-                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #f0fdf4; border-radius: 8px; border-left: 3px solid #22c55e;">
+                  <div class="activity-item activity-pickup">
                     <div>
                       <strong>${b.customer_name}</strong>
-                      <div style="font-size: 12px; color: var(--muted);">${trailer?.name || 'Unknown'}</div>
+                      <div class="text-muted" style="font-size: 12px;">${trailer?.name || 'Unknown'}</div>
                     </div>
                     <span class="pill green">Pickup</span>
                   </div>
@@ -79,7 +79,7 @@ export async function loadHomeView() {
               ${todaysReturns.map(b => {
                 const trailer = trailers.find(t => t.id === b.trailer_id);
                 return `
-                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #fef2f2; border-radius: 8px; border-left: 3px solid #ef4444;">
+                  <div class="activity-item activity-return">
                     <div>
                       <strong>${b.customer_name}</strong>
                       <div style="font-size: 12px; color: var(--muted);">${trailer?.name || 'Unknown'}</div>
@@ -90,7 +90,7 @@ export async function loadHomeView() {
               }).join('')}
             </div>
           ` : `
-            <p style="color: var(--muted); text-align: center; padding: 20px 0;">No pickups or returns today</p>
+            <p class="empty-state" style="padding: 20px 0;">No pickups or returns today</p>
           `}
         </div>
 
@@ -102,27 +102,27 @@ export async function loadHomeView() {
                 const trailer = trailers.find(t => t.id === b.trailer_id);
                 const isToday = b.start_date === today;
                 return `
-                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #f9fafb; border-radius: 8px;">
+                  <div class="activity-item">
                     <div>
                       <strong>${b.customer_name}</strong>
-                      <div style="font-size: 12px; color: var(--muted);">${trailer?.name || 'Unknown'}</div>
+                      <div class="text-muted" style="font-size: 12px;">${trailer?.name || 'Unknown'}</div>
                     </div>
                     <div style="text-align: right;">
-                      <div style="font-size: 13px; font-weight: 600; ${isToday ? 'color: var(--brand);' : ''}">${isToday ? 'Today' : formatDateShort(b.start_date)}</div>
+                      <div class="${isToday ? 'text-brand font-semibold' : 'font-semibold'}" style="font-size: 13px;">${isToday ? 'Today' : formatDateShort(b.start_date)}</div>
                       ${b.price_quoted ? `<div style="font-size: 12px; color: var(--muted);">$${parseFloat(b.price_quoted).toLocaleString()}</div>` : ''}
                     </div>
                   </div>
                 `;
               }).join('')}
             </div>
-            ${upcomingBookings.length > 8 ? `<p style="color: var(--muted); font-size: 13px; margin-top: 12px; text-align: center;">+${upcomingBookings.length - 8} more</p>` : ''}
+            ${upcomingBookings.length > 8 ? `<p class="text-muted text-center" style="font-size: 13px; margin-top: 12px;">+${upcomingBookings.length - 8} more</p>` : ''}
           ` : `
-            <p style="color: var(--muted); text-align: center; padding: 20px 0;">No upcoming bookings this week</p>
+            <p class="empty-state" style="padding: 20px 0;">No upcoming bookings this week</p>
           `}
         </div>
       </div>
 
-      <div class="panel" style="margin-top: 24px;">
+      <div class="panel mt-3">
         <h2>Currently Rented</h2>
         ${currentlyRented.length > 0 ? `
           <table>
@@ -159,7 +159,7 @@ export async function loadHomeView() {
             </tbody>
           </table>
         ` : `
-          <p style="color: var(--muted); text-align: center; padding: 20px 0;">No trailers currently rented</p>
+          <p class="empty-state" style="padding: 20px 0;">No trailers currently rented</p>
         `}
       </div>
     </div>

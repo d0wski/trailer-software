@@ -738,7 +738,7 @@ td:first-child {
   border-radius: var(--radius-2xl);
   border: var(--glass-border);
   padding: 32px;
-  max-width: 500px;
+  max-width: 560px;
   width: 90%;
   max-height: 90vh;
   overflow-y: auto;

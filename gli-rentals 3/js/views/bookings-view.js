@@ -633,6 +633,40 @@ window.openBookingModal = async function(trailerId, startDate, endDate) {
         <input type="text" id="deliveryAddress" required placeholder="123 Main St, City, MI">
       </div>
 
+      <div class="form-group">
+        <label>Delivery Time</label>
+        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+          <button type="button" class="btn btn-primary" id="exactTimeBtn" style="padding: 8px 16px;" onclick="document.getElementById('exactTimeGroup').style.display='flex'; document.getElementById('rangeTimeGroup').style.display='none'; this.classList.add('btn-primary'); this.classList.remove('btn-secondary'); document.getElementById('rangeTimeBtn').classList.remove('btn-primary'); document.getElementById('rangeTimeBtn').classList.add('btn-secondary');">Exact Time</button>
+          <button type="button" class="btn btn-secondary" id="rangeTimeBtn" style="padding: 8px 16px;" onclick="document.getElementById('exactTimeGroup').style.display='none'; document.getElementById('rangeTimeGroup').style.display='flex'; this.classList.add('btn-primary'); this.classList.remove('btn-secondary'); document.getElementById('exactTimeBtn').classList.remove('btn-primary'); document.getElementById('exactTimeBtn').classList.add('btn-secondary');">Time Range</button>
+        </div>
+        <div id="exactTimeGroup" style="display: flex; align-items: center; gap: 6px;">
+          <input type="text" id="deliveryHour" style="width: 60px; text-align: center;" placeholder="12" maxlength="2">
+          <span style="font-weight: 600;">:</span>
+          <input type="text" id="deliveryMinute" style="width: 60px; text-align: center;" placeholder="00" maxlength="2">
+          <select id="deliveryAmPm" style="padding: 10px 12px; width: 80px; flex-shrink: 0;">
+            <option value="AM">AM</option>
+            <option value="PM">PM</option>
+          </select>
+        </div>
+        <div id="rangeTimeGroup" style="display: none; align-items: center; gap: 6px;">
+          <input type="text" id="deliveryStartHour" style="width: 50px; text-align: center;" placeholder="12" maxlength="2">
+          <span style="font-weight: 600;">:</span>
+          <input type="text" id="deliveryStartMinute" style="width: 60px; text-align: center;" placeholder="00" maxlength="2">
+          <select id="deliveryStartAmPm" style="padding: 10px 12px; width: 75px; flex-shrink: 0;">
+            <option value="AM">AM</option>
+            <option value="PM">PM</option>
+          </select>
+          <span style="margin: 0 8px;">to</span>
+          <input type="text" id="deliveryEndHour" style="width: 50px; text-align: center;" placeholder="12" maxlength="2">
+          <span style="font-weight: 600;">:</span>
+          <input type="text" id="deliveryEndMinute" style="width: 60px; text-align: center;" placeholder="00" maxlength="2">
+          <select id="deliveryEndAmPm" style="padding: 10px 12px; width: 75px; flex-shrink: 0;">
+            <option value="AM">AM</option>
+            <option value="PM">PM</option>
+          </select>
+        </div>
+      </div>
+
       <!-- Pricing Section -->
       <div style="border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 16px;">
         <div style="font-size: 13px; font-weight: 700; color: #1f2937; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Pricing</div>
@@ -664,7 +698,7 @@ window.openBookingModal = async function(trailerId, startDate, endDate) {
           <div class="form-group">
             <label for="roundTripMiles">Round Trip Miles</label>
             <input type="number" id="roundTripMiles" min="0" placeholder="0">
-            <p style="font-size: 12px; color: #4b5563; margin-top: 4px;">First 20 miles free</p>
+            <p style="font-size: 12px; color: #1f2937; margin-top: 4px;">First 20 miles free</p>
           </div>
           <div class="form-group">
             <label for="pricePerMile">$/Mile (after 20)</label>
@@ -674,19 +708,19 @@ window.openBookingModal = async function(trailerId, startDate, endDate) {
       </div>
 
       <!-- Order Summary Section -->
-      <div style="border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 16px;">
+      <div style="border-top: 1px solid #1f2937; padding-top: 16px; margin-top: 16px;">
         <div style="font-size: 13px; font-weight: 700; color: #1f2937; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Order Summary</div>
         <div id="orderSummary">
           <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; border-bottom: 1px solid #f3f4f6;">
-            <span style="color: #4b5563;">Trailer Rental</span>
+            <span style="color: #1f2937;">Trailer Rental</span>
             <span style="font-weight: 600;" id="summaryRental">$0.00</span>
           </div>
           <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; border-bottom: 1px solid #f3f4f6;">
-            <span style="color: #4b5563;" id="summaryIceLabel">Ice (0 × 20lb @ $0.00)</span>
+            <span style="color: #1f2937;" id="summaryIceLabel">Ice (0 × 20lb @ $0.00)</span>
             <span style="font-weight: 600;" id="summaryIce">$0.00</span>
           </div>
           <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; border-bottom: 1px solid #f3f4f6;">
-            <span style="color: #4b5563;" id="summaryMileageLabel">Mileage (0 billable mi)</span>
+            <span style="color: #1f2937;" id="summaryMileageLabel">Mileage (0 billable mi)</span>
             <span style="font-weight: 600;" id="summaryMileage">$0.00</span>
           </div>
           <div style="display: flex; justify-content: space-between; padding: 12px 0 0; font-size: 16px; font-weight: 700;">
@@ -749,12 +783,35 @@ window.openBookingModal = async function(trailerId, startDate, endDate) {
     const mileageTotal = billableMiles * pricePerMile;
     const totalPrice = rentalRate + iceTotal + mileageTotal;
 
+    // Get delivery time
+    const isExactTime = document.getElementById('exactTimeGroup').style.display !== 'none';
+    let deliveryTime = '';
+    if (isExactTime) {
+      const hour = document.getElementById('deliveryHour').value;
+      const minute = document.getElementById('deliveryMinute').value || '00';
+      const ampm = document.getElementById('deliveryAmPm').value;
+      if (hour) {
+        deliveryTime = `${hour}:${minute} ${ampm}`;
+      }
+    } else {
+      const startHour = document.getElementById('deliveryStartHour').value;
+      const startMinute = document.getElementById('deliveryStartMinute').value || '00';
+      const startAmPm = document.getElementById('deliveryStartAmPm').value;
+      const endHour = document.getElementById('deliveryEndHour').value;
+      const endMinute = document.getElementById('deliveryEndMinute').value || '00';
+      const endAmPm = document.getElementById('deliveryEndAmPm').value;
+      if (startHour && endHour) {
+        deliveryTime = `${startHour}:${startMinute} ${startAmPm} - ${endHour}:${endMinute} ${endAmPm}`;
+      }
+    }
+
     const bookingData = {
       trailerId: trailerId,
       customerId: customerId,
       customerName: customerName,
       customerPhone: customerPhone,
       deliveryAddress: deliveryAddress,
+      deliveryTime: deliveryTime,
       startDate: startDate,
       endDate: endDate,
       priceQuoted: totalPrice,

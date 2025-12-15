@@ -186,6 +186,7 @@ export async function addBooking(booking) {
       notes: booking.notes || null,
       status: booking.status || 'confirmed',
       delivery_address: booking.deliveryAddress || null,
+      delivery_time: booking.deliveryTime || null,
       price_quoted: booking.priceQuoted || null,
       rental_rate: booking.rentalRate || 0,
       ice_bag_size: booking.iceBagSize || '20lb',
@@ -216,6 +217,7 @@ export async function updateBooking(id, updates) {
   if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
   if (updates.status !== undefined) dbUpdates.status = updates.status;
   if (updates.deliveryAddress !== undefined) dbUpdates.delivery_address = updates.deliveryAddress;
+  if (updates.deliveryTime !== undefined) dbUpdates.delivery_time = updates.deliveryTime;
   if (updates.priceQuoted !== undefined) dbUpdates.price_quoted = updates.priceQuoted;
   if (updates.rentalRate !== undefined) dbUpdates.rental_rate = updates.rentalRate;
   if (updates.iceBagSize !== undefined) dbUpdates.ice_bag_size = updates.iceBagSize;

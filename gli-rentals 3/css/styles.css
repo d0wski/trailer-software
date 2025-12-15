@@ -404,7 +404,7 @@ body {
 .kpis,
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 18px;
   margin-bottom: 36px;
 }
@@ -450,8 +450,7 @@ body {
 }
 
 .kpi:hover {
-  transform: translateY(-6px) scale(1.02);
-  box-shadow: var(--shadow-xl), inset 0 2px 0 rgba(255, 255, 255, 1);
+  /* No hover effect - KPIs are not clickable */
 }
 
 .kpi .label,
@@ -743,9 +742,31 @@ td:first-child {
   width: 90%;
   max-height: 90vh;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(1, 35, 64, 0.2) transparent;
   transform: translateY(-20px) scale(0.95);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: var(--glass-shadow), 0 25px 80px rgba(1, 35, 64, 0.3);
+}
+
+.modal::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 24px 0;
+  border-radius: 3px;
+}
+
+.modal::-webkit-scrollbar-thumb {
+  background: rgba(1, 35, 64, 0.15);
+  border-radius: 3px;
+}
+
+.modal::-webkit-scrollbar-thumb:hover {
+  background: rgba(1, 35, 64, 0.25);
 }
 
 /* Shine on modal */
@@ -793,7 +814,7 @@ td:first-child {
   text-transform: uppercase;
   letter-spacing: 1px;
   margin-bottom: 16px;
-  opacity: 0.5;
+  opacity: 0.7;
 }
 
 .section-divider {
@@ -1230,7 +1251,7 @@ td:first-child {
   align-items: center;
   justify-content: center;
   background: var(--bg);
-  background-image: url('assets/login.jpg');
+  background-image: url('../assets/login.jpg');
   background-size: cover;
   background-position: center bottom;
   padding: 20px;
@@ -1336,7 +1357,7 @@ td:first-child {
 /* ============================================
    Utilities
    ============================================ */
-.text-muted { color: var(--text-muted); }
+.text-muted { color: #475569; }
 .text-success { color: var(--success-text); }
 .text-warning { color: var(--warning-text); }
 .text-danger { color: var(--danger-text); }
@@ -1457,4 +1478,13 @@ td:first-child {
   
   .form-row,
   .form-row-3 { grid-template-columns: 1fr; }
+}
+/* Drag and Drop */
+#sortableBody tr.dragging {
+  opacity: 0.4;
+  background: #f1f5f9;
+}
+
+#sortableBody tr.drag-over {
+  border-top: 2px solid var(--carolina);
 }

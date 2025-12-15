@@ -612,7 +612,7 @@ window.openBookingModal = async function(trailerId, startDate, endDate) {
 
     <form id="bookingForm">
       <!-- Customer Information Section -->
-      <div style="font-size: 13px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Customer Information</div>
+      <div style="font-size: 13px; font-weight: 700; color: #1f2937; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Customer Information</div>
       
       <div class="form-group">
         <label for="customerSearch">Customer *</label>
@@ -635,7 +635,7 @@ window.openBookingModal = async function(trailerId, startDate, endDate) {
 
       <!-- Pricing Section -->
       <div style="border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 16px;">
-        <div style="font-size: 13px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Pricing</div>
+        <div style="font-size: 13px; font-weight: 700; color: #1f2937; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Pricing</div>
         
         <div class="form-group">
           <label for="rentalRate">Trailer Rental Quote ($) *</label>
@@ -664,7 +664,7 @@ window.openBookingModal = async function(trailerId, startDate, endDate) {
           <div class="form-group">
             <label for="roundTripMiles">Round Trip Miles</label>
             <input type="number" id="roundTripMiles" min="0" placeholder="0">
-            <p style="font-size: 12px; color: #6b7280; margin-top: 4px;">First 20 miles free</p>
+            <p style="font-size: 12px; color: #4b5563; margin-top: 4px;">First 20 miles free</p>
           </div>
           <div class="form-group">
             <label for="pricePerMile">$/Mile (after 20)</label>
@@ -675,18 +675,18 @@ window.openBookingModal = async function(trailerId, startDate, endDate) {
 
       <!-- Order Summary Section -->
       <div style="border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 16px;">
-        <div style="font-size: 13px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Order Summary</div>
+        <div style="font-size: 13px; font-weight: 700; color: #1f2937; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Order Summary</div>
         <div id="orderSummary">
           <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; border-bottom: 1px solid #f3f4f6;">
-            <span style="color: #6b7280;">Trailer Rental</span>
+            <span style="color: #4b5563;">Trailer Rental</span>
             <span style="font-weight: 600;" id="summaryRental">$0.00</span>
           </div>
           <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; border-bottom: 1px solid #f3f4f6;">
-            <span style="color: #6b7280;" id="summaryIceLabel">Ice (0 × 20lb @ $0.00)</span>
+            <span style="color: #4b5563;" id="summaryIceLabel">Ice (0 × 20lb @ $0.00)</span>
             <span style="font-weight: 600;" id="summaryIce">$0.00</span>
           </div>
           <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; border-bottom: 1px solid #f3f4f6;">
-            <span style="color: #6b7280;" id="summaryMileageLabel">Mileage (0 billable mi)</span>
+            <span style="color: #4b5563;" id="summaryMileageLabel">Mileage (0 billable mi)</span>
             <span style="font-weight: 600;" id="summaryMileage">$0.00</span>
           </div>
           <div style="display: flex; justify-content: space-between; padding: 12px 0 0; font-size: 16px; font-weight: 700;">

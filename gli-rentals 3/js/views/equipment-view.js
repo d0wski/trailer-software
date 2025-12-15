@@ -24,8 +24,8 @@ export async function loadEquipmentView() {
 
   main.innerHTML = `
     <div class="card">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h1 style="margin: 0;">Equipment</h1>
+      <div class="flex-between mb-3">
+        <h1 class="mb-0">Equipment</h1>
         <button class="btn btn-primary" id="addTrailerBtn">+ Add Equipment</button>
       </div>
 
@@ -47,8 +47,8 @@ export async function loadEquipmentView() {
                 const isRented = !!activeBooking;
                 
                 return `
-                  <tr draggable="true" data-id="${t.id}" data-index="${index}" onclick="window.viewEquipmentDetail('${t.id}')" style="cursor: pointer;">
-                    <td class="drag-handle" style="cursor: grab; color: var(--muted); font-size: 18px; text-align: center;" onclick="event.stopPropagation()">⋮⋮</td>
+                  <tr draggable="true" data-id="${t.id}" data-index="${index}" onclick="window.viewEquipmentDetail('${t.id}')" class="cursor-pointer">
+                    <td class="drag-handle" onclick="event.stopPropagation()">⋮⋮</td>
                     <td><strong>${t.name}</strong></td>
                     <td>${t.identifier || '-'}</td>
                     <td>
@@ -56,34 +56,21 @@ export async function loadEquipmentView() {
                         ${isRented ? 'Rented' : 'Available'}
                       </span>
                     </td>
-                    <td style="color: var(--muted); font-size: 13px;">${isRented ? activeBooking.customer_name : 'Shop'}</td>
-                    <td style="color: var(--muted);">→</td>
+                    <td class="text-muted" style="font-size: 13px;">${isRented ? activeBooking.customer_name : 'Shop'}</td>
+                    <td class="text-muted">→</td>
                   </tr>
                 `;
               }).join('')}
             </tbody>
           </table>
         ` : `
-          <div style="text-align: center; padding: 60px; color: var(--muted);">
-            <p style="font-size: 16px; margin-bottom: 16px;">No equipment added yet</p>
+          <div class="empty-state">
+            <p>No equipment added yet</p>
             <button class="btn btn-primary" onclick="document.getElementById('addTrailerBtn').click()">+ Add Your First Trailer</button>
           </div>
         `}
       </div>
     </div>
-
-    <style>
-      #sortableBody tr.dragging {
-        opacity: 0.4;
-        background: #f1f5f9;
-      }
-      #sortableBody tr.drag-over {
-        border-top: 2px solid var(--brand);
-      }
-      .drag-handle:active {
-        cursor: grabbing;
-      }
-    </style>
   `;
 
   document.getElementById('addTrailerBtn').addEventListener('click', () => {
@@ -180,14 +167,14 @@ export async function loadEquipmentDetailView(id) {
   
   main.innerHTML = `
     <div class="card">
-      <div style="margin-bottom: 24px;">
-        <a href="#" onclick="window.backToEquipment()" style="color: var(--muted); text-decoration: none; font-size: 14px;">← Back to Equipment</a>
+      <div class="mb-3">
+        <a href="#" onclick="window.backToEquipment()" class="back-link">← Back to Equipment</a>
       </div>
       
-      <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 24px;">
+      <div class="flex-between mb-3" style="align-items: flex-start;">
         <div>
-          <h1 style="margin: 0 0 8px;">${trailer.name}</h1>
-          <p style="color: var(--muted); margin: 0;">
+          <h1 class="mb-1">${trailer.name}</h1>
+          <p class="text-muted mb-0">
             ${trailer.identifier ? `ID: ${trailer.identifier}` : 'No identifier'}
             <span class="pill ${isRented ? 'red' : 'green'}" style="margin-left: 12px;">
               ${isRented ? 'Rented' : 'Available'}
@@ -198,13 +185,13 @@ export async function loadEquipmentDetailView(id) {
       </div>
       
       ${trailer.notes ? `
-        <div style="background: #f9fafb; padding: 12px 16px; border-radius: 8px; margin-bottom: 24px;">
-          <strong style="font-size: 13px; color: var(--muted);">Notes</strong>
-          <p style="margin: 4px 0 0;">${trailer.notes}</p>
+        <div class="panel mb-3">
+          <strong class="text-muted" style="font-size: 13px;">Notes</strong>
+          <p class="mb-0 mt-1">${trailer.notes}</p>
         </div>
       ` : ''}
       
-      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
+      <div class="kpi-grid mb-3" style="grid-template-columns: repeat(3, 1fr);">
         <div class="kpi">
           <div class="label">Total Bookings</div>
           <div class="value">${bookings.length}</div>
@@ -253,13 +240,13 @@ export async function loadEquipmentDetailView(id) {
             </tbody>
           </table>
         ` : `
-          <p style="color: var(--muted); padding: 20px 0; text-align: center;">No rental history yet</p>
+          <p class="text-muted text-center" style="padding: 20px 0;">No rental history yet</p>
         `}
       </div>
       
-      <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--line);">
-        <h3 style="color: #991b1b; margin-bottom: 12px;">Danger Zone</h3>
-        <p style="color: var(--muted); font-size: 14px; margin-bottom: 12px;">
+      <div class="danger-zone">
+        <h3>Danger Zone</h3>
+        <p>
           Deleting this equipment will also delete all ${bookings.length} associated booking(s). This cannot be undone.
         </p>
         <button class="btn btn-danger" onclick="window.openDeleteConfirmModal('${trailer.id}', '${trailer.name}', ${bookings.length})">Delete Equipment</button>
@@ -282,10 +269,10 @@ window.editEquipmentDetail = async function(id) {
 
 window.openDeleteConfirmModal = function(id, name, bookingCount) {
   const modalContent = `
-    <h2 style="color: #991b1b;">Delete Equipment</h2>
+    <h2 class="text-danger">Delete Equipment</h2>
     <p>You are about to permanently delete <strong>${name}</strong>.</p>
-    ${bookingCount > 0 ? `<p style="color: #991b1b;"><strong>Warning:</strong> This will also delete ${bookingCount} booking(s).</p>` : ''}
-    <p style="margin-top: 16px;">Type <strong>delete</strong> to confirm:</p>
+    ${bookingCount > 0 ? `<p class="text-danger"><strong>Warning:</strong> This will also delete ${bookingCount} booking(s).</p>` : ''}
+    <p class="mt-2">Type <strong>delete</strong> to confirm:</p>
     <div class="form-group">
       <input type="text" id="deleteConfirmInput" placeholder="Type 'delete' here" autocomplete="off">
     </div>

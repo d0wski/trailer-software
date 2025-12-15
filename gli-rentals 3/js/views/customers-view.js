@@ -219,19 +219,19 @@ window.viewCustomerDetail = async function(id) {
   
   main.innerHTML = `
     <div class="card">
-      <div style="margin-bottom: 24px;">
-        <a href="#" onclick="window.backToCustomers()" style="color: var(--muted); text-decoration: none; font-size: 14px;">← Back to Customers</a>
+      <div class="mb-3">
+        <a href="#" onclick="window.backToCustomers()" class="back-link">← Back to Customers</a>
       </div>
       
-      <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 24px;">
+      <div class="flex-between mb-3" style="align-items: flex-start;">
         <div>
-          <h1 style="margin: 0 0 8px;">${customer.name}</h1>
-          <p style="color: var(--muted); margin: 0;">Customer since ${new Date(customer.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</p>
+          <h1 class="mb-1">${customer.name}</h1>
+          <p class="text-muted mb-0">Customer since ${new Date(customer.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</p>
         </div>
         <button class="btn btn-secondary" onclick="window.editCustomerFromDetail('${customer.id}')">Edit</button>
       </div>
       
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 24px;">
+      <div class="kpi-grid mb-3" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
         <div class="kpi">
           <div class="label">Total Spent</div>
           <div class="value">$${totalSpent.toLocaleString()}</div>
@@ -250,26 +250,26 @@ window.viewCustomerDetail = async function(id) {
         </div>
       </div>
       
-      <div class="panel" style="margin-bottom: 24px;">
+      <div class="panel mb-3">
         <h2>Contact Information</h2>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+        <div class="contact-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
           <div>
-            <div style="font-size: 12px; color: var(--muted); text-transform: uppercase; margin-bottom: 4px;">Phone</div>
-            <div style="font-size: 16px;">${customer.phone || '—'}</div>
+            <div class="contact-label">Phone</div>
+            <div class="contact-value">${customer.phone || '—'}</div>
           </div>
           <div>
-            <div style="font-size: 12px; color: var(--muted); text-transform: uppercase; margin-bottom: 4px;">Email</div>
-            <div style="font-size: 16px;">${customer.email || '—'}</div>
+            <div class="contact-label">Email</div>
+            <div class="contact-value">${customer.email || '—'}</div>
           </div>
           <div>
-            <div style="font-size: 12px; color: var(--muted); text-transform: uppercase; margin-bottom: 4px;">Address</div>
-            <div style="font-size: 16px;">${customer.address || '—'}</div>
+            <div class="contact-label">Address</div>
+            <div class="contact-value">${customer.address || '—'}</div>
           </div>
         </div>
         ${customer.notes ? `
-          <div style="margin-top: 16px; padding: 12px; background: #fef9c3; border-radius: 8px;">
-            <div style="font-size: 12px; color: #854d0e; text-transform: uppercase; margin-bottom: 4px;">Notes</div>
-            <div style="color: #854d0e;">${customer.notes}</div>
+          <div class="notes-box">
+            <div class="notes-box-label">Notes</div>
+            <div class="notes-box-content">${customer.notes}</div>
           </div>
         ` : ''}
       </div>
@@ -317,13 +317,13 @@ window.viewCustomerDetail = async function(id) {
             </tbody>
           </table>
         ` : `
-          <p style="color: var(--muted); text-align: center; padding: 40px 0;">No rental history yet</p>
+          <p class="text-muted text-center" style="padding: 40px 0;">No rental history yet</p>
         `}
       </div>
       
-      <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--line);">
-        <h3 style="color: #991b1b; margin-bottom: 12px;">Danger Zone</h3>
-        <p style="color: var(--muted); font-size: 14px; margin-bottom: 12px;">
+      <div class="danger-zone">
+        <h3>Danger Zone</h3>
+        <p>
           Deleting this customer will remove their record. Their ${customerBookings.length} booking(s) will remain but won't be linked to this customer.
         </p>
         <button class="btn btn-danger" onclick="window.confirmDeleteCustomerFromDetail('${customer.id}', '${customer.name.replace(/'/g, "\\'")}', ${customerBookings.length})">Delete Customer</button>

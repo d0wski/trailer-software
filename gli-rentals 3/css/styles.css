@@ -211,6 +211,11 @@ body {
   transition: background 0.2s ease, transform 0.02s ease;
 }
 
+/* Hide icons on desktop */
+.nav-icon {
+  display: none;
+}
+
 .nav a:hover {
   background: var(--navy-light);
 }
@@ -1419,30 +1424,50 @@ td:first-child {
   .sidebar {
     position: fixed;
     bottom: 0;
+    top: auto;
     left: 0;
     right: 0;
     height: auto;
     flex-direction: row;
-    padding: 8px;
+    padding: 6px 2px 10px;
     z-index: 100;
-    border-radius: 20px 20px 0 0;
+    border-radius: 0;
     background: var(--navy);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
   }
   
   .logo { display: none; }
   
   .nav { 
     flex-direction: row; 
-    gap: 4px; 
+    gap: 0; 
     margin: 0; 
     flex: 1; 
-    justify-content: space-around; 
+    justify-content: space-between;
+    width: 100%;
   }
   
   .nav a { 
-    padding: 10px 8px; 
-    font-size: 9px; 
-    letter-spacing: 0.05em; 
+    padding: 6px 2px; 
+    font-size: 8px; 
+    letter-spacing: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    min-width: 0;
+    flex: 1;
+  }
+  
+  .nav-icon {
+    display: block;
+    width: 20px;
+    height: 20px;
+  }
+  
+  .nav a span {
+    display: block;
+    white-space: nowrap;
   }
   
   .user-section { display: none; }

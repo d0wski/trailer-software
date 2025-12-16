@@ -70,7 +70,7 @@ export async function loadHomeView() {
                   <div class="activity-item activity-pickup">
                     <div>
                       <strong>${b.customer_name}</strong>
-                      <div class="text-muted" style="font-size: 12px;">${trailer?.name || 'Unknown'}</div>
+                      <div class="text-muted" style="font-size: 12px;">${trailer?.name || 'Unknown'}${b.delivery_time ? ` · <span style="color: #012340; font-weight: 600;">${b.delivery_time}</span>` : ''}</div>
                     </div>
                     <span class="pill green">Pickup</span>
                   </div>
@@ -105,7 +105,7 @@ export async function loadHomeView() {
                   <div class="activity-item">
                     <div>
                       <strong>${b.customer_name}</strong>
-                      <div class="text-muted" style="font-size: 12px;">${trailer?.name || 'Unknown'}</div>
+                      <div class="text-muted" style="font-size: 12px;">${trailer?.name || 'Unknown'}${b.delivery_time ? ` · <span style="color: #012340; font-weight: 600;">${b.delivery_time}</span>` : ''}</div>
                     </div>
                     <div style="text-align: right;">
                       <div class="${isToday ? 'text-brand font-semibold' : 'font-semibold'}" style="font-size: 13px;">${isToday ? 'Today' : formatDateShort(b.start_date)}</div>

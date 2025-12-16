@@ -358,7 +358,6 @@ async function checkAvailability(startDate, endDate) {
     getBookingsInRange(startDate, endDate)
   ]);
   
-  // Filter available trailers locally instead of separate DB call
   const bookedTrailerIds = new Set(
     bookingsInRange
       .filter(b => b.start_date <= endDate && b.end_date >= startDate)
@@ -412,7 +411,7 @@ async function checkAvailability(startDate, endDate) {
 
 async function renderCalendar() {
   const monthYearEl = document.getElementById('monthYear');
-  if (!monthYearEl) return; // View was navigated away
+  if (!monthYearEl) return;
   
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
                       'July', 'August', 'September', 'October', 'November', 'December'];
@@ -435,7 +434,6 @@ async function renderCalendar() {
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
 
-  // Build weeks array
   const weeks = [];
   let currentWeek = [];
   
@@ -460,7 +458,6 @@ async function renderCalendar() {
     weeks.push(currentWeek);
   }
 
-  // Get all trailers for consistent row ordering
   const allTrailerIds = trailers.map(t => t.id);
   const rowHeight = 24;
   const dayMinHeight = 28 + (allTrailerIds.length * rowHeight);
@@ -500,7 +497,8 @@ async function renderCalendar() {
       .cal-day.today { outline: 2px solid var(--brand); outline-offset: -2px; }
       .cal-day-num { font-weight: 600; font-size: 12px; margin-bottom: 2px; padding: 2px 4px; }
       .cal-day.today .cal-day-num { color: var(--brand); font-weight: 700; }
-      .cal-row { height: ${rowHeight - 2}px; margin-bottom: 1px; display: flex; }      .cal-bar {
+      .cal-row { height: ${rowHeight - 2}px; margin-bottom: 1px; display: flex; }
+      .cal-bar {
         height: 100%;
         display: flex;
         align-items: center;
@@ -555,7 +553,6 @@ async function renderCalendar() {
             const isStart = booking.start_date === dayData.dateStr;
             const isEnd = booking.end_date === dayData.dateStr;
             
-            // Check if this is the second day of the booking
             const startDate = new Date(booking.start_date + 'T00:00:00');
             const thisDate = new Date(dayData.dateStr + 'T00:00:00');
             const dayDiff = Math.round((thisDate - startDate) / (1000 * 60 * 60 * 24));
@@ -572,7 +569,7 @@ async function renderCalendar() {
             else if (isSecondDay) label = booking.customer_name;
             
             html += `<div class="${barClass}" style="background: ${color};" 
-                         onclick="event.stopPropagation(); window.openEditBookingModal('${booking.id}')"
+                         onclick="event.stopPropagation(); window.openBookingModal('${trailer.id}', '${booking.start_date}', '${booking.end_date}', '${booking.id}')"
                          title="${trailer?.name} - ${booking.customer_name}">${label}</div>`;
           }
           
@@ -599,70 +596,180 @@ window.handleDayClick = function(dateStr) {
   checkAvailability(dateStr, dateStr);
 };
 
-window.openBookingModal = async function(trailerId, startDate, endDate) {
-  const [trailers, customers] = await Promise.all([
+// Helper to parse delivery time
+function parseDeliveryTime(deliveryTime) {
+  let result = {
+    isTimeRange: false,
+    hour: '', minute: '', ampm: 'AM',
+    startHour: '', startMinute: '', startAmPm: 'AM',
+    endHour: '', endMinute: '', endAmPm: 'AM'
+  };
+
+  if (!deliveryTime) return result;
+
+  if (deliveryTime.includes(' - ')) {
+    result.isTimeRange = true;
+    const [startTime, endTime] = deliveryTime.split(' - ');
+    const startMatch = startTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
+    const endMatch = endTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
+    if (startMatch) {
+      result.startHour = startMatch[1];
+      result.startMinute = startMatch[2];
+      result.startAmPm = startMatch[3].toUpperCase();
+    }
+    if (endMatch) {
+      result.endHour = endMatch[1];
+      result.endMinute = endMatch[2];
+      result.endAmPm = endMatch[3].toUpperCase();
+    }
+  } else {
+    const match = deliveryTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
+    if (match) {
+      result.hour = match[1];
+      result.minute = match[2];
+      result.ampm = match[3].toUpperCase();
+    }
+  }
+
+  return result;
+}
+
+// Helper to get delivery time from form
+function getDeliveryTimeFromForm() {
+  const isExactTime = document.getElementById('exactTimeGroup').style.display !== 'none';
+  let deliveryTime = '';
+  
+  if (isExactTime) {
+    const hour = document.getElementById('deliveryHour').value;
+    const minute = document.getElementById('deliveryMinute').value || '00';
+    const ampm = document.getElementById('deliveryAmPm').value;
+    if (hour) {
+      deliveryTime = `${hour}:${minute} ${ampm}`;
+    }
+  } else {
+    const startHour = document.getElementById('deliveryStartHour').value;
+    const startMinute = document.getElementById('deliveryStartMinute').value || '00';
+    const startAmPm = document.getElementById('deliveryStartAmPm').value;
+    const endHour = document.getElementById('deliveryEndHour').value;
+    const endMinute = document.getElementById('deliveryEndMinute').value || '00';
+    const endAmPm = document.getElementById('deliveryEndAmPm').value;
+    if (startHour && endHour) {
+      deliveryTime = `${startHour}:${startMinute} ${startAmPm} - ${endHour}:${endMinute} ${endAmPm}`;
+    }
+  }
+  
+  return deliveryTime;
+}
+
+// Helper to calculate totals from form
+function calculateTotals() {
+  const rentalRate = parseFloat(document.getElementById('rentalRate').value) || 0;
+  const iceBagQty = parseInt(document.getElementById('iceBagQty').value) || 0;
+  const icePricePerBag = parseFloat(document.getElementById('icePricePerBag').value) || 0;
+  const roundTripMiles = parseFloat(document.getElementById('roundTripMiles').value) || 0;
+  const pricePerMile = parseFloat(document.getElementById('pricePerMile').value) || 1.25;
+  
+  const iceTotal = iceBagQty * icePricePerBag;
+  const billableMiles = Math.max(0, roundTripMiles - 20);
+  const mileageTotal = billableMiles * pricePerMile;
+  const totalPrice = rentalRate + iceTotal + mileageTotal;
+
+  return { rentalRate, iceBagQty, icePricePerBag, roundTripMiles, pricePerMile, iceTotal, billableMiles, mileageTotal, totalPrice };
+}
+
+// Unified booking modal - handles both create and edit
+window.openBookingModal = async function(trailerId, startDate, endDate, bookingId = null) {
+  const isEdit = !!bookingId;
+  
+  const [trailers, customers, bookings] = await Promise.all([
     getActiveTrailers(),
-    getCustomers()
+    getCustomers(),
+    isEdit ? getBookings() : Promise.resolve([])
   ]);
+  
   const trailer = trailers.find(t => t.id === trailerId);
+  const booking = isEdit ? bookings.find(b => b.id === bookingId) : null;
+
+  // Parse existing delivery time for edit mode
+  const timeData = isEdit ? parseDeliveryTime(booking?.delivery_time) : { isTimeRange: false, hour: '', minute: '', ampm: 'AM', startHour: '', startMinute: '', startAmPm: 'AM', endHour: '', endMinute: '', endAmPm: 'AM' };
 
   const modalContent = `
-    <h2>Book ${trailer.name}</h2>
-    <p style="color: var(--muted); margin-bottom: 20px;">${formatDate(startDate)}${startDate !== endDate ? ` → ${formatDate(endDate)}` : ''}</p>
+    <h2>${isEdit ? 'Edit Booking' : `Book ${trailer.name}`}</h2>
+    <p style="color: var(--muted); margin-bottom: 20px;">${isEdit ? (trailer?.name || 'Unknown') : ''} ${formatDate(startDate)}${startDate !== endDate ? ` → ${formatDate(endDate)}` : ''}</p>
 
     <form id="bookingForm">
+      ${isEdit ? `
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label for="editStartDate">Pickup Date</label>
+            <input type="date" id="editStartDate" value="${booking.start_date}">
+          </div>
+          <div class="form-group">
+            <label for="editEndDate">Return Date</label>
+            <input type="date" id="editEndDate" value="${booking.end_date}">
+          </div>
+        </div>
+      ` : ''}
+
       <!-- Customer Information Section -->
       <div style="font-size: 13px; font-weight: 700; color: #1f2937; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Customer Information</div>
       
-      <div class="form-group">
-        <label for="customerSearch">Customer *</label>
-        <div style="position: relative;">
-          <input type="text" id="customerSearch" required placeholder="Search or enter new customer..." autocomplete="off">
-          <div id="customerDropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.15); max-height: 200px; overflow-y: auto; z-index: 100;"></div>
+      ${isEdit ? `
+        <div class="form-group">
+          <label for="customerName">Customer Name *</label>
+          <input type="text" id="customerName" required value="${booking.customer_name}">
         </div>
-        <input type="hidden" id="selectedCustomerId" value="">
-      </div>
+      ` : `
+        <div class="form-group">
+          <label for="customerSearch">Customer *</label>
+          <div style="position: relative;">
+            <input type="text" id="customerSearch" required placeholder="Search or enter new customer..." autocomplete="off">
+            <div id="customerDropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.15); max-height: 200px; overflow-y: auto; z-index: 100;"></div>
+          </div>
+          <input type="hidden" id="selectedCustomerId" value="">
+        </div>
+      `}
 
       <div class="form-group">
         <label for="customerPhone">Phone *</label>
-        <input type="tel" id="customerPhone" required placeholder="(555) 123-4567">
+        <input type="tel" id="customerPhone" required placeholder="(555) 123-4567" value="${isEdit ? (booking.customer_phone || '') : ''}">
       </div>
 
       <div class="form-group">
         <label for="deliveryAddress">Delivery Address *</label>
-        <input type="text" id="deliveryAddress" required placeholder="123 Main St, City, MI">
+        <input type="text" id="deliveryAddress" required placeholder="123 Main St, City, MI" value="${isEdit ? (booking.delivery_address || '') : ''}">
       </div>
 
       <div class="form-group">
         <label>Delivery Time</label>
         <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-          <button type="button" class="btn btn-primary" id="exactTimeBtn" style="padding: 8px 16px;" onclick="document.getElementById('exactTimeGroup').style.display='flex'; document.getElementById('rangeTimeGroup').style.display='none'; this.classList.add('btn-primary'); this.classList.remove('btn-secondary'); document.getElementById('rangeTimeBtn').classList.remove('btn-primary'); document.getElementById('rangeTimeBtn').classList.add('btn-secondary');">Exact Time</button>
-          <button type="button" class="btn btn-secondary" id="rangeTimeBtn" style="padding: 8px 16px;" onclick="document.getElementById('exactTimeGroup').style.display='none'; document.getElementById('rangeTimeGroup').style.display='flex'; this.classList.add('btn-primary'); this.classList.remove('btn-secondary'); document.getElementById('exactTimeBtn').classList.remove('btn-primary'); document.getElementById('exactTimeBtn').classList.add('btn-secondary');">Time Range</button>
+          <button type="button" class="btn ${timeData.isTimeRange ? 'btn-secondary' : 'btn-primary'}" id="exactTimeBtn" style="padding: 8px 16px;" onclick="document.getElementById('exactTimeGroup').style.display='flex'; document.getElementById('rangeTimeGroup').style.display='none'; this.classList.add('btn-primary'); this.classList.remove('btn-secondary'); document.getElementById('rangeTimeBtn').classList.remove('btn-primary'); document.getElementById('rangeTimeBtn').classList.add('btn-secondary');">Exact Time</button>
+          <button type="button" class="btn ${timeData.isTimeRange ? 'btn-primary' : 'btn-secondary'}" id="rangeTimeBtn" style="padding: 8px 16px;" onclick="document.getElementById('exactTimeGroup').style.display='none'; document.getElementById('rangeTimeGroup').style.display='flex'; this.classList.add('btn-primary'); this.classList.remove('btn-secondary'); document.getElementById('exactTimeBtn').classList.remove('btn-primary'); document.getElementById('exactTimeBtn').classList.add('btn-secondary');">Time Range</button>
         </div>
-        <div id="exactTimeGroup" style="display: flex; align-items: center; gap: 6px;">
-          <input type="text" id="deliveryHour" style="width: 60px; text-align: center;" placeholder="12" maxlength="2">
+        <div id="exactTimeGroup" style="display: ${timeData.isTimeRange ? 'none' : 'flex'}; align-items: center; gap: 6px;">
+          <input type="text" id="deliveryHour" style="width: 60px; text-align: center;" placeholder="12" maxlength="2" value="${timeData.hour}">
           <span style="font-weight: 600;">:</span>
-          <input type="text" id="deliveryMinute" style="width: 60px; text-align: center;" placeholder="00" maxlength="2">
+          <input type="text" id="deliveryMinute" style="width: 60px; text-align: center;" placeholder="00" maxlength="2" value="${timeData.minute}">
           <select id="deliveryAmPm" style="padding: 10px 12px; width: 80px; flex-shrink: 0;">
-            <option value="AM">AM</option>
-            <option value="PM">PM</option>
+            <option value="AM" ${timeData.ampm === 'AM' ? 'selected' : ''}>AM</option>
+            <option value="PM" ${timeData.ampm === 'PM' ? 'selected' : ''}>PM</option>
           </select>
         </div>
-        <div id="rangeTimeGroup" style="display: none; align-items: center; gap: 6px;">
-          <input type="text" id="deliveryStartHour" style="width: 50px; text-align: center;" placeholder="12" maxlength="2">
+        <div id="rangeTimeGroup" style="display: ${timeData.isTimeRange ? 'flex' : 'none'}; align-items: center; gap: 6px;">
+          <input type="text" id="deliveryStartHour" style="width: 50px; text-align: center;" placeholder="12" maxlength="2" value="${timeData.startHour}">
           <span style="font-weight: 600;">:</span>
-          <input type="text" id="deliveryStartMinute" style="width: 60px; text-align: center;" placeholder="00" maxlength="2">
+          <input type="text" id="deliveryStartMinute" style="width: 60px; text-align: center;" placeholder="00" maxlength="2" value="${timeData.startMinute}">
           <select id="deliveryStartAmPm" style="padding: 10px 12px; width: 75px; flex-shrink: 0;">
-            <option value="AM">AM</option>
-            <option value="PM">PM</option>
+            <option value="AM" ${timeData.startAmPm === 'AM' ? 'selected' : ''}>AM</option>
+            <option value="PM" ${timeData.startAmPm === 'PM' ? 'selected' : ''}>PM</option>
           </select>
           <span style="margin: 0 8px;">to</span>
-          <input type="text" id="deliveryEndHour" style="width: 50px; text-align: center;" placeholder="12" maxlength="2">
+          <input type="text" id="deliveryEndHour" style="width: 50px; text-align: center;" placeholder="12" maxlength="2" value="${timeData.endHour}">
           <span style="font-weight: 600;">:</span>
-          <input type="text" id="deliveryEndMinute" style="width: 60px; text-align: center;" placeholder="00" maxlength="2">
+          <input type="text" id="deliveryEndMinute" style="width: 60px; text-align: center;" placeholder="00" maxlength="2" value="${timeData.endMinute}">
           <select id="deliveryEndAmPm" style="padding: 10px 12px; width: 75px; flex-shrink: 0;">
-            <option value="AM">AM</option>
-            <option value="PM">PM</option>
+            <option value="AM" ${timeData.endAmPm === 'AM' ? 'selected' : ''}>AM</option>
+            <option value="PM" ${timeData.endAmPm === 'PM' ? 'selected' : ''}>PM</option>
           </select>
         </div>
       </div>
@@ -673,42 +780,42 @@ window.openBookingModal = async function(trailerId, startDate, endDate) {
         
         <div class="form-group">
           <label for="rentalRate">Trailer Rental Quote ($) *</label>
-          <input type="number" id="rentalRate" required min="0" step="0.01" placeholder="0.00">
+          <input type="number" id="rentalRate" required min="0" step="0.01" placeholder="0.00" value="${isEdit ? (booking.rental_rate || '') : ''}">
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
           <div class="form-group">
             <label for="iceBagSize">Ice Bag Size</label>
             <select id="iceBagSize">
-              <option value="20lb">20 lb bags</option>
-              <option value="7lb">7 lb bags</option>
+              <option value="20lb" ${isEdit && booking.ice_bag_size === '20lb' ? 'selected' : ''}>20 lb bags</option>
+              <option value="7lb" ${isEdit && booking.ice_bag_size === '7lb' ? 'selected' : ''}>7 lb bags</option>
             </select>
           </div>
           <div class="form-group">
             <label for="iceBagQty">Quantity</label>
-            <input type="number" id="iceBagQty" min="0" placeholder="0">
+            <input type="number" id="iceBagQty" min="0" placeholder="0" value="${isEdit ? (booking.ice_bag_qty || '') : ''}">
           </div>
           <div class="form-group">
             <label for="icePricePerBag">$/Bag</label>
-            <input type="number" id="icePricePerBag" min="0" step="0.01" placeholder="0.00">
+            <input type="number" id="icePricePerBag" min="0" step="0.01" placeholder="0.00" value="${isEdit ? (booking.ice_price_per_bag || '') : ''}">
           </div>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <div class="form-group">
             <label for="roundTripMiles">Round Trip Miles</label>
-            <input type="number" id="roundTripMiles" min="0" placeholder="0">
+            <input type="number" id="roundTripMiles" min="0" placeholder="0" value="${isEdit ? (booking.round_trip_miles || '') : ''}">
             <p style="font-size: 12px; color: #1f2937; margin-top: 4px;">First 20 miles free</p>
           </div>
           <div class="form-group">
             <label for="pricePerMile">$/Mile (after 20)</label>
-            <input type="number" id="pricePerMile" min="0" step="0.01" placeholder="1.25" value="1.25">
+            <input type="number" id="pricePerMile" min="0" step="0.01" placeholder="1.25" value="${isEdit ? (booking.price_per_mile || 1.25) : '1.25'}">
           </div>
         </div>
       </div>
 
       <!-- Order Summary Section -->
-      <div style="border-top: 1px solid #1f2937; padding-top: 16px; margin-top: 16px;">
+      <div style="border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 16px;">
         <div style="font-size: 13px; font-weight: 700; color: #1f2937; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Order Summary</div>
         <div id="orderSummary">
           <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; border-bottom: 1px solid #f3f4f6;">
@@ -734,74 +841,51 @@ window.openBookingModal = async function(trailerId, startDate, endDate) {
       <div style="border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 16px;">
         <div class="form-group">
           <label for="notes">Notes</label>
-          <textarea id="notes" rows="2" placeholder="Any additional notes..."></textarea>
+          <textarea id="notes" rows="2" placeholder="Any additional notes...">${isEdit ? (booking.notes || '') : ''}</textarea>
         </div>
       </div>
 
       <div class="modal-actions">
+        ${isEdit ? `<button type="button" class="btn btn-danger" style="margin-right: auto;" onclick="window.deleteBookingConfirm('${bookingId}')">Delete</button>` : ''}
         <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-        <button type="submit" class="btn btn-primary">Create Booking</button>
+        <button type="submit" class="btn btn-primary">${isEdit ? 'Save Changes' : 'Create Booking'}</button>
       </div>
     </form>
   `;
 
   openModal(modalContent);
-  setupCustomerAutocomplete(customers);
+  
+  if (!isEdit) {
+    setupCustomerAutocomplete(customers);
+  }
   setupPricingCalculations();
 
   document.getElementById('bookingForm').addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const selectedCustomerId = document.getElementById('selectedCustomerId').value;
-    const customerName = document.getElementById('customerSearch').value.trim();
-    const customerPhone = document.getElementById('customerPhone').value.trim();
-    const deliveryAddress = document.getElementById('deliveryAddress').value.trim();
+    const totals = calculateTotals();
+    const deliveryTime = getDeliveryTimeFromForm();
 
-    let customerId = selectedCustomerId || null;
-
-    // If no existing customer selected, create a new one
-    if (!customerId && customerName) {
-      const newCustomer = await addCustomer({
-        name: customerName,
-        phone: customerPhone,
-        address: deliveryAddress
-      });
-      if (newCustomer) {
-        customerId = newCustomer.id;
-      }
-    }
-
-    // Calculate total price
-    const rentalRate = parseFloat(document.getElementById('rentalRate').value) || 0;
-    const iceBagQty = parseInt(document.getElementById('iceBagQty').value) || 0;
-    const icePricePerBag = parseFloat(document.getElementById('icePricePerBag').value) || 0;
-    const roundTripMiles = parseFloat(document.getElementById('roundTripMiles').value) || 0;
-    const pricePerMile = parseFloat(document.getElementById('pricePerMile').value) || 1.25;
+    let customerName, customerId;
     
-    const iceTotal = iceBagQty * icePricePerBag;
-    const billableMiles = Math.max(0, roundTripMiles - 20);
-    const mileageTotal = billableMiles * pricePerMile;
-    const totalPrice = rentalRate + iceTotal + mileageTotal;
-
-    // Get delivery time
-    const isExactTime = document.getElementById('exactTimeGroup').style.display !== 'none';
-    let deliveryTime = '';
-    if (isExactTime) {
-      const hour = document.getElementById('deliveryHour').value;
-      const minute = document.getElementById('deliveryMinute').value || '00';
-      const ampm = document.getElementById('deliveryAmPm').value;
-      if (hour) {
-        deliveryTime = `${hour}:${minute} ${ampm}`;
-      }
+    if (isEdit) {
+      customerName = document.getElementById('customerName').value.trim();
+      customerId = booking.customer_id;
     } else {
-      const startHour = document.getElementById('deliveryStartHour').value;
-      const startMinute = document.getElementById('deliveryStartMinute').value || '00';
-      const startAmPm = document.getElementById('deliveryStartAmPm').value;
-      const endHour = document.getElementById('deliveryEndHour').value;
-      const endMinute = document.getElementById('deliveryEndMinute').value || '00';
-      const endAmPm = document.getElementById('deliveryEndAmPm').value;
-      if (startHour && endHour) {
-        deliveryTime = `${startHour}:${startMinute} ${startAmPm} - ${endHour}:${endMinute} ${endAmPm}`;
+      const selectedCustomerId = document.getElementById('selectedCustomerId').value;
+      customerName = document.getElementById('customerSearch').value.trim();
+      customerId = selectedCustomerId || null;
+
+      // If no existing customer selected, create a new one
+      if (!customerId && customerName) {
+        const newCustomer = await addCustomer({
+          name: customerName,
+          phone: document.getElementById('customerPhone').value.trim(),
+          address: document.getElementById('deliveryAddress').value.trim()
+        });
+        if (newCustomer) {
+          customerId = newCustomer.id;
+        }
       }
     }
 
@@ -809,25 +893,73 @@ window.openBookingModal = async function(trailerId, startDate, endDate) {
       trailerId: trailerId,
       customerId: customerId,
       customerName: customerName,
-      customerPhone: customerPhone,
-      deliveryAddress: deliveryAddress,
+      customerPhone: document.getElementById('customerPhone').value.trim(),
+      deliveryAddress: document.getElementById('deliveryAddress').value.trim(),
       deliveryTime: deliveryTime,
-      startDate: startDate,
-      endDate: endDate,
-      priceQuoted: totalPrice,
-      rentalRate: rentalRate,
+      startDate: isEdit ? document.getElementById('editStartDate').value : startDate,
+      endDate: isEdit ? document.getElementById('editEndDate').value : endDate,
+      priceQuoted: totals.totalPrice,
+      rentalRate: totals.rentalRate,
       iceBagSize: document.getElementById('iceBagSize').value,
-      iceBagQty: iceBagQty,
-      icePricePerBag: icePricePerBag,
-      roundTripMiles: roundTripMiles,
-      pricePerMile: pricePerMile,
+      iceBagQty: totals.iceBagQty,
+      icePricePerBag: totals.icePricePerBag,
+      roundTripMiles: totals.roundTripMiles,
+      pricePerMile: totals.pricePerMile,
       notes: document.getElementById('notes').value.trim()
     };
 
-    await addBooking(bookingData);
+    if (isEdit) {
+      await updateBooking(bookingId, bookingData);
+    } else {
+      await addBooking(bookingData);
+    }
+    
+    // Send email notification
+    try {
+      emailjs.init('GoXpbvNpRYvfRj7xQ');
+      await emailjs.send('service_7aaghj9', 'template_4b96i2o', {
+        subject: `${isEdit ? 'Updated' : 'New'} Booking: ${bookingData.customerName}`,
+        message: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px;">
+            <h2 style="color: #012340;">${isEdit ? 'Booking Updated' : 'New Booking'}</h2>
+            
+            <h3 style="margin-top: 24px; color: #374151;">Customer</h3>
+            <p><strong>Name:</strong> ${bookingData.customerName}</p>
+            <p><strong>Phone:</strong> ${bookingData.customerPhone}</p>
+            <p><strong>Address:</strong> ${bookingData.deliveryAddress}</p>
+            
+            <h3 style="margin-top: 24px; color: #374151;">Rental Details</h3>
+            <p><strong>Trailer:</strong> ${trailer?.name || 'Unknown'}</p>
+            <p><strong>Pickup:</strong> ${bookingData.startDate}</p>
+            <p><strong>Return:</strong> ${bookingData.endDate}</p>
+            <p><strong>Delivery Time:</strong> ${bookingData.deliveryTime || 'Not specified'}</p>
+            
+            <h3 style="margin-top: 24px; color: #374151;">Pricing</h3>
+            <p><strong>Rental:</strong> $${bookingData.rentalRate || 0}</p>
+            <p><strong>Ice:</strong> ${bookingData.iceBagQty || 0} × ${bookingData.iceBagSize || '20lb'} @ $${bookingData.icePricePerBag || 0}</p>
+            <p><strong>Mileage:</strong> ${bookingData.roundTripMiles || 0} miles @ $${bookingData.pricePerMile || 0}/mile = $${(Math.max(0, (bookingData.roundTripMiles || 0) - 20) * (bookingData.pricePerMile || 0)).toFixed(2)}</p>
+            <p style="font-size: 18px; margin-top: 16px;"><strong>Total: $${bookingData.priceQuoted}</strong></p>
+            
+            ${bookingData.notes ? `<h3 style="margin-top: 24px; color: #374151;">Notes</h3><p>${bookingData.notes}</p>` : ''}
+          </div>
+        `
+      });
+    } catch (e) {
+      console.error('Failed to send email:', e);
+    }
+    
     closeModal();
     await loadBookingsView();
   });
+};
+
+// Keep this for backwards compatibility with calendar clicks
+window.openEditBookingModal = async function(bookingId) {
+  const bookings = await getBookings();
+  const booking = bookings.find(b => b.id === bookingId);
+  if (booking) {
+    window.openBookingModal(booking.trailer_id, booking.start_date, booking.end_date, bookingId);
+  }
 };
 
 async function openNewBookingModal(startDate, endDate) {
@@ -837,7 +969,6 @@ async function openNewBookingModal(startDate, endDate) {
     getCustomers()
   ]);
   
-  // Filter available trailers locally
   const bookedTrailerIds = new Set(bookingsInRange.map(b => b.trailer_id));
   const availableTrailers = trailers.filter(t => !bookedTrailerIds.has(t.id));
 
@@ -846,185 +977,33 @@ async function openNewBookingModal(startDate, endDate) {
     return;
   }
 
+  // If only one trailer available, go directly to booking modal
+  if (availableTrailers.length === 1) {
+    window.openBookingModal(availableTrailers[0].id, startDate, endDate);
+    return;
+  }
+
+  // Otherwise show trailer selection
   const modalContent = `
-    <h2>New Booking</h2>
+    <h2>Select Trailer</h2>
+    <p style="color: var(--muted); margin-bottom: 20px;">${formatDate(startDate)}${startDate !== endDate ? ` → ${formatDate(endDate)}` : ''}</p>
 
-    <form id="bookingForm">
-      <div class="form-group">
-        <label for="trailerId">Trailer *</label>
-        <select id="trailerId" required>
-          <option value="">Select a trailer...</option>
-          ${availableTrailers.map(t => `<option value="${t.id}">${t.name}</option>`).join('')}
-        </select>
-      </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-        <div class="form-group">
-          <label for="modalStartDate">Pickup Date *</label>
-          <input type="date" id="modalStartDate" required value="${startDate}">
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      ${availableTrailers.map(t => `
+        <div class="avail-item" style="padding: 14px; border: 1px solid var(--line); cursor: pointer;" onclick="closeModal(); window.openBookingModal('${t.id}', '${startDate}', '${endDate}')">
+          <span class="avail-item-name">${t.name}</span>
+          <span class="avail-item-action">Select →</span>
         </div>
-        <div class="form-group">
-          <label for="modalEndDate">Return Date *</label>
-          <input type="date" id="modalEndDate" required value="${endDate}">
-        </div>
-      </div>
+      `).join('')}
+    </div>
 
-      <div class="form-group">
-        <label for="customerSearch">Customer *</label>
-        <div style="position: relative;">
-          <input type="text" id="customerSearch" required placeholder="Search or enter new customer..." autocomplete="off">
-          <div id="customerDropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.15); max-height: 200px; overflow-y: auto; z-index: 100;"></div>
-        </div>
-        <input type="hidden" id="selectedCustomerId" value="">
-      </div>
-
-      <div class="form-group">
-        <label for="customerPhone">Phone *</label>
-        <input type="tel" id="customerPhone" required placeholder="(555) 123-4567">
-      </div>
-
-      <div class="form-group">
-        <label for="deliveryAddress">Delivery Address *</label>
-        <input type="text" id="deliveryAddress" required placeholder="123 Main St, City, MI">
-      </div>
-
-      <div class="form-group">
-        <label for="priceQuoted">Price Quoted ($) *</label>
-        <input type="number" id="priceQuoted" required min="0" step="0.01" placeholder="0.00">
-      </div>
-
-      <div class="form-group">
-        <label for="notes">Notes</label>
-        <textarea id="notes" rows="2" placeholder="Any additional notes..."></textarea>
-      </div>
-
-      <div class="modal-actions">
-        <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-        <button type="submit" class="btn btn-primary">Create Booking</button>
-      </div>
-    </form>
+    <div class="modal-actions" style="margin-top: 20px;">
+      <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+    </div>
   `;
 
   openModal(modalContent);
-  setupCustomerAutocomplete(customers);
-
-  document.getElementById('bookingForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const selectedCustomerId = document.getElementById('selectedCustomerId').value;
-    const customerName = document.getElementById('customerSearch').value.trim();
-    const customerPhone = document.getElementById('customerPhone').value.trim();
-    const deliveryAddress = document.getElementById('deliveryAddress').value.trim();
-
-    let customerId = selectedCustomerId || null;
-
-    // If no existing customer selected, create a new one
-    if (!customerId && customerName) {
-      const newCustomer = await addCustomer({
-        name: customerName,
-        phone: customerPhone,
-        address: deliveryAddress
-      });
-      if (newCustomer) {
-        customerId = newCustomer.id;
-      }
-    }
-
-    const bookingData = {
-      trailerId: document.getElementById('trailerId').value,
-      customerId: customerId,
-      customerName: customerName,
-      customerPhone: customerPhone,
-      deliveryAddress: deliveryAddress,
-      startDate: document.getElementById('modalStartDate').value,
-      endDate: document.getElementById('modalEndDate').value,
-      priceQuoted: parseFloat(document.getElementById('priceQuoted').value),
-      notes: document.getElementById('notes').value.trim()
-    };
-
-    await addBooking(bookingData);
-    closeModal();
-    await loadBookingsView();
-  });
 }
-
-window.openEditBookingModal = async function(bookingId) {
-  const [bookings, trailers] = await Promise.all([
-    getBookings(),
-    getActiveTrailers()
-  ]);
-  const booking = bookings.find(b => b.id === bookingId);
-  const trailer = trailers.find(t => t.id === booking.trailer_id);
-
-  const modalContent = `
-    <h2>Edit Booking</h2>
-    <p style="color: var(--muted); margin-bottom: 20px;">${trailer?.name || 'Unknown'}</p>
-
-    <form id="editBookingForm">
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-        <div class="form-group">
-          <label for="editStartDate">Pickup Date</label>
-          <input type="date" id="editStartDate" value="${booking.start_date}">
-        </div>
-        <div class="form-group">
-          <label for="editEndDate">Return Date</label>
-          <input type="date" id="editEndDate" value="${booking.end_date}">
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label for="customerName">Customer Name *</label>
-        <input type="text" id="customerName" required value="${booking.customer_name}">
-      </div>
-
-      <div class="form-group">
-        <label for="customerPhone">Phone *</label>
-        <input type="tel" id="customerPhone" required value="${booking.customer_phone || ''}">
-      </div>
-
-      <div class="form-group">
-        <label for="deliveryAddress">Delivery Address *</label>
-        <input type="text" id="deliveryAddress" required value="${booking.delivery_address || ''}">
-      </div>
-
-      <div class="form-group">
-        <label for="priceQuoted">Price Quoted ($) *</label>
-        <input type="number" id="priceQuoted" required min="0" step="0.01" value="${booking.price_quoted || ''}">
-      </div>
-
-      <div class="form-group">
-        <label for="notes">Notes</label>
-        <textarea id="notes" rows="2">${booking.notes || ''}</textarea>
-      </div>
-
-      <div class="modal-actions">
-        <button type="button" class="btn btn-danger" style="margin-right: auto;" onclick="window.deleteBookingConfirm('${bookingId}')">Delete</button>
-        <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-        <button type="submit" class="btn btn-primary">Save Changes</button>
-      </div>
-    </form>
-  `;
-
-  openModal(modalContent);
-
-  document.getElementById('editBookingForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const bookingData = {
-      customerName: document.getElementById('customerName').value.trim(),
-      customerPhone: document.getElementById('customerPhone').value.trim(),
-      deliveryAddress: document.getElementById('deliveryAddress').value.trim(),
-      startDate: document.getElementById('editStartDate').value,
-      endDate: document.getElementById('editEndDate').value,
-      priceQuoted: parseFloat(document.getElementById('priceQuoted').value),
-      notes: document.getElementById('notes').value.trim()
-    };
-
-    await updateBooking(bookingId, bookingData);
-    closeModal();
-    await loadBookingsView();
-  });
-};
 
 window.deleteBookingConfirm = async function(bookingId) {
   const modalContent = `
@@ -1035,7 +1014,7 @@ window.deleteBookingConfirm = async function(bookingId) {
       <input type="text" id="deleteConfirmInput" placeholder="Type 'delete' here" autocomplete="off">
     </div>
     <div class="modal-actions">
-      <button type="button" class="btn btn-secondary" onclick="closeModal(); window.openEditBookingModal('${bookingId}');">Cancel</button>
+      <button type="button" class="btn btn-secondary" onclick="closeModal();">Cancel</button>
       <button type="button" class="btn btn-danger" id="confirmDeleteBtn" disabled>Delete</button>
     </div>
   `;
@@ -1057,7 +1036,6 @@ window.deleteBookingConfirm = async function(bookingId) {
     }
   });
 };
-
 
 function setupPricingCalculations() {
   const rentalInput = document.getElementById('rentalRate');
@@ -1092,6 +1070,9 @@ function setupPricingCalculations() {
     el.addEventListener('input', updateSummary);
     el.addEventListener('change', updateSummary);
   });
+
+  // Trigger initial calculation
+  updateSummary();
 }
 
 function setupCustomerAutocomplete(customers) {
@@ -1103,7 +1084,7 @@ function setupCustomerAutocomplete(customers) {
 
   searchInput.addEventListener('input', () => {
     const query = searchInput.value.toLowerCase().trim();
-    customerIdInput.value = ''; // Clear selection when typing
+    customerIdInput.value = '';
     
     if (query.length === 0) {
       dropdown.style.display = 'none';
@@ -1154,6 +1135,7 @@ function setupCustomerAutocomplete(customers) {
     }
   });
 }
+
 function formatDate(dateStr) {
   const date = new Date(dateStr + 'T00:00:00');
   return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
